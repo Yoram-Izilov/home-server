@@ -39,18 +39,34 @@ pipeline {
 
         stage('Validate') {
             // Lint Prometheus config + rules and Alertmanager config before anything ships.
-            // Mount prometheus/ at /etc/prometheus so `rule_files: /etc/prometheus/rules/*.yml`
-            // resolves during `promtool check config`.
+            //
+            // We copy files INTO throwaway containers with `docker cp` rather than
+            // bind-mounting the workspace. Jenkins runs in a container but talks to the
+            // *host* Docker daemon, so a `-v $WORKSPACE/...` mount source is resolved
+            // against the host filesystem (where the workspace doesn't exist), giving the
+            // container an empty dir. `docker cp` reads the files on the client side, so it
+            // works regardless of the Jenkins-container / host-daemon split.
+            //
+            // The container command is set at `docker create` time and runs on `docker start -a`
+            // (after the cp), which attaches and propagates the exit code so `set -e` catches
+            // lint failures. prometheus/ is copied to /etc/prometheus so the config's
+            // `rule_files: /etc/prometheus/rules/*.yml` resolves.
             steps {
                 sh '''
                     set -e
-                    docker run --rm -v "$WORKSPACE/monitoring/prometheus:/etc/prometheus:ro" \
-                        --entrypoint sh "$PROM_IMAGE" -c \
-                        'promtool check config /etc/prometheus/prometheus.yml && promtool check rules /etc/prometheus/rules/*.yml'
+                    pcid=""; acid=""
+                    cleanup() { docker rm -f "$pcid" "$acid" >/dev/null 2>&1 || true; }
+                    trap cleanup EXIT
 
-                    docker run --rm -v "$WORKSPACE/monitoring/alertmanager:/cfg:ro" \
-                        --entrypoint amtool "$ALERTMANAGER_IMAGE" \
-                        check-config /cfg/alertmanager.yml
+                    pcid=$(docker create --entrypoint sh "$PROM_IMAGE" -c \
+                        'promtool check config /etc/prometheus/prometheus.yml && promtool check rules /etc/prometheus/rules/*.yml')
+                    docker cp monitoring/prometheus/. "$pcid:/etc/prometheus/"
+                    docker start -a "$pcid"
+
+                    acid=$(docker create --entrypoint amtool "$ALERTMANAGER_IMAGE" \
+                        check-config /etc/alertmanager/alertmanager.yml)
+                    docker cp monitoring/alertmanager/. "$acid:/etc/alertmanager/"
+                    docker start -a "$acid"
                 '''
             }
         }
