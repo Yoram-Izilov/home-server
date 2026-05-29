@@ -58,13 +58,6 @@ ruler:
   enable_api: true
   evaluation_interval: 1m
   poll_interval: 1m
-  # Recording rules (e.g. daily unique visitors) are remote-written to Prometheus so
-  # they outlive Loki's 168h log retention and feed the "all-time" dashboard panels.
-  # Prometheus accepts these via --web.enable-remote-write-receiver.
-  remote_write:
-    enabled: true
-    client:
-      url: http://prometheus:9090/api/v1/write
 
 frontend:
   encoding: protobuf

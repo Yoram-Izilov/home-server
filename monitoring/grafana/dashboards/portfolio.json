@@ -29,7 +29,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 0 },
       "id": 1,
       "options": {
         "colorMode": "background",
@@ -64,7 +64,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 0 },
       "id": 2,
       "options": {
         "colorMode": "background",
@@ -88,42 +88,6 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "description": "Cumulative unique-visitor-days across all history: the rolling-24h unique-visitor gauge (Loki recording rule persisted in Prometheus) integrated over time. /1440 = samples per day at the ruler's 1-minute evaluation interval (if that interval changes, change this divisor). A range query over raw samples (not a daily subquery), so it populates immediately. NOTE: a returning visitor is counted once per day, so this is an all-time engagement figure, not a deduplicated all-time headcount.",
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
-      "id": 3,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
-        "textMode": "value"
-      },
-      "pluginVersion": "13.0.1",
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "editorMode": "code",
-          "expr": "sum_over_time(portfolio:unique_visitors:1d[3650d]) / 1440",
-          "instant": true,
-          "range": false,
-          "refId": "A"
-        }
-      ],
-      "title": "Unique visitors — all-time (visitor-days)",
-      "type": "stat"
-    },
-    {
       "datasource": { "type": "loki", "uid": "loki" },
       "description": "Total requests served in the last 24h (page views + assets).",
       "fieldConfig": {
@@ -135,7 +99,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 0 },
       "id": 4,
       "options": {
         "colorMode": "none",
@@ -159,8 +123,8 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "description": "Rolling 24h unique-visitor count over time (from the Loki recording rule persisted in Prometheus — survives Loki's 7d retention).",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "description": "Rolling-24h unique visitors over time, queried directly from the Loki access logs (within the 7-day retention window). At each step it counts distinct client IPs over the preceding 24h.",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -179,11 +143,11 @@
       "pluginVersion": "13.0.1",
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
-          "expr": "portfolio:unique_visitors:1d",
+          "expr": "count(sum by (remote_addr) (count_over_time({container=\"portfolio\"} | json remote_addr=\"remote_addr\" | __error__=\"\" [24h])))",
           "legendFormat": "unique visitors (24h rolling)",
-          "range": true,
+          "queryType": "range",
           "refId": "A"
         }
       ],
