@@ -28,7 +28,7 @@ The bot exports traces to `tempo:4317` (hardcoded in the bot's `bot.py`) and pro
 
 ## Deploy flow
 
-The repo-root `Jenkinsfile` validates on every branch/PR and deploys on `main`. The deploy step:
+The repo-root `Jenkinsfile` deploys the stack (Deploy → Remove Dangling Images → Verify). The deploy step:
 
 1. `rsync -a --delete monitoring/` → `MONITORING_DEPLOY_PATH` (`/home/izilov/Desktop/home-server-monitoring`)
 2. Writes the Discord webhook secret to `alertmanager/discord-webhook-url` (gitignored)
@@ -57,7 +57,7 @@ For this to work, the Jenkins container itself must have `MONITORING_DEPLOY_PATH
 
 ## When editing files here
 
-- Touching a Prometheus rule, Grafana dashboard, Tempo config, etc. only requires a redeploy — push to a branch, open a PR; merge to `main` triggers the deploy. The `Validate` stage lints rules/config on the PR first.
+- Touching a Prometheus rule, Grafana dashboard, Tempo config, etc. only requires a redeploy — push to a branch, open a PR; merging to `main` triggers the deploy. Lint locally first (`promtool`/`amtool`, see the repo-root CLAUDE.md) — the pipeline no longer does it for you.
 - Adding a new monitored service: run `/add-monitored-service`. It adds the scrape target, scaffolds starter alert rules, and reminds you the service must join `monitoring_monitoring`.
 - Auditing for drift: run `/sync-monitoring-config`.
 - Changing the network name or removing `-p monitoring`: breaks the bot's `monitoring_monitoring` external attachment. Don't.

@@ -30,11 +30,13 @@ Then: Grafana → http://localhost:3000, Prometheus → http://localhost:9090, A
 
 ## Deployment
 
-`Jenkinsfile` validates on every branch/PR and deploys on `main`:
+`Jenkinsfile` deploys the monitoring stack:
 
-1. **Validate** — `promtool check config|rules` and `amtool check-config`, run inside the pinned `prom/*` images. Catches rule/config typos before they ship. Runs everywhere.
-2. **Deploy** (main only) — `rsync -a --delete monitoring/` to `MONITORING_DEPLOY_PATH` on the host, writes the webhook secret to `alertmanager/discord-webhook-url`, then `docker compose -p monitoring -f .../docker-compose.yml up -d`.
+1. **Deploy** — `rsync -a --delete monitoring/` to `MONITORING_DEPLOY_PATH` on the host, writes the webhook secret to `alertmanager/discord-webhook-url`, then `docker compose -p monitoring -f .../docker-compose.yml up -d`.
+2. **Remove Dangling Images** — prunes leftover image layers.
 3. **Verify** — asserts `prometheus`, `grafana`, `alertmanager`, `loki`, `tempo` containers are running.
+
+Config linting is **not** part of the pipeline — validate locally before pushing (see [Verifying changes](#verifying-changes) or run `/sync-monitoring-config`).
 
 ### Invariants — do not break these
 
