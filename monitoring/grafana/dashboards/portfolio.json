@@ -89,7 +89,7 @@
     },
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "description": "Cumulative unique-visitor-days across all history (sum of each day's unique-visitor count, sampled daily from the Loki recording rule persisted in Prometheus). NOTE: a returning visitor is counted once per day, so this is an all-time engagement figure, not a deduplicated all-time headcount.",
+      "description": "Cumulative unique-visitor-days across all history: the rolling-24h unique-visitor gauge (Loki recording rule persisted in Prometheus) integrated over time. /1440 = samples per day at the ruler's 1-minute evaluation interval (if that interval changes, change this divisor). A range query over raw samples (not a daily subquery), so it populates immediately. NOTE: a returning visitor is counted once per day, so this is an all-time engagement figure, not a deduplicated all-time headcount.",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -114,7 +114,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "editorMode": "code",
-          "expr": "sum_over_time(portfolio:unique_visitors:1d[3650d:1d])",
+          "expr": "sum_over_time(portfolio:unique_visitors:1d[3650d]) / 1440",
           "instant": true,
           "range": false,
           "refId": "A"
