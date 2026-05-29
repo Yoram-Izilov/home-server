@@ -1,0 +1,139 @@
+# Docker Compose file for monitoring stack with Prometheus, Grafana, Loki, Tempo, and Alertmanager
+services:
+  prometheus:
+    image: prom/prometheus:v3.11.3
+    container_name: prometheus
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/rules:/etc/prometheus/rules
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.enable-remote-write-receiver'
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoring
+
+  node-exporter:
+    image: prom/node-exporter:v1.11.1
+    container_name: node-exporter
+    pid: "host"
+    network_mode: "host"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:13.0.1
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set (Jenkins credential grafana-admin-password or monitoring/.env)}
+    networks:
+      - monitoring
+
+  loki:
+    image: grafana/loki:3.7.2
+    container_name: loki
+    restart: unless-stopped
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/local-config.yaml
+      - ./loki/rules:/loki/rules
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    networks:
+      - monitoring
+
+  promtail:
+    image: grafana/promtail:3.4.1
+    container_name: promtail
+    restart: unless-stopped
+    depends_on:
+      - loki
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/promtail-config.yaml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/log:/var/log
+      - promtail_positions:/var/promtail
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    networks:
+      - monitoring
+
+  tempo:
+    image: grafana/tempo:2.10.5
+    container_name: tempo
+    restart: unless-stopped
+    ports:
+      - "3200:3200"
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml
+      - ./tempo/overrides.yaml:/etc/overrides.yaml
+      - tempo_data:/var/tempo
+    command: ["--config.file=/etc/tempo/tempo.yaml"]
+    networks:
+      - monitoring
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.111.0
+    container_name: otel-collector
+    restart: unless-stopped
+    depends_on:
+      - tempo
+    volumes:
+      - ./opentelemetry/opentel-config.yaml:/etc/otel/config.yaml
+    command: ["--config=/etc/otel/config.yaml"]
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - monitoring
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: alertmanager
+    restart: unless-stopped
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - ./alertmanager/discord-webhook-url:/etc/alertmanager/discord-webhook-url:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    ports:
+      - "9093:9093"
+    networks:
+      - monitoring
+
+  pyroscope:
+    image: grafana/pyroscope:1.10.0
+    container_name: pyroscope
+    restart: unless-stopped
+    volumes:
+      - pyroscope_data:/data
+    ports:
+      - "4040:4040"
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+  tempo_data:
+  promtail_positions:
+  alertmanager_data:
+  pyroscope_data:

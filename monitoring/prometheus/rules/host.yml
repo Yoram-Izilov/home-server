@@ -1,0 +1,57 @@
+groups:
+  - name: host
+    interval: 30s
+    rules:
+      - alert: HostOutOfMemory
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Host {{ $labels.instance }} is out of memory"
+          description: "Less than 10% memory available on {{ $labels.instance }} (current: {{ $value | printf \"%.2f\" }})."
+
+      - alert: HostSwapUsageHigh
+        expr: ((node_memory_SwapTotal_bytes - node_memory_SwapFree_bytes) / node_memory_SwapTotal_bytes) > 0.5 and node_memory_SwapTotal_bytes > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High swap usage on {{ $labels.instance }}"
+          description: "Swap usage is above 50% on {{ $labels.instance }} for 10m (current: {{ $value | printf \"%.2f\" }})."
+
+      - alert: HostDiskWillFillIn24h
+        expr: predict_linear(node_filesystem_avail_bytes{fstype!~"tmpfs|squashfs|vfat|overlay|fuse.lxcfs"}[6h], 24*3600) < 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk on {{ $labels.instance }} ({{ $labels.mountpoint }}) will fill in 24h"
+          description: "Linear projection over the last 6h predicts {{ $labels.mountpoint }} on {{ $labels.instance }} will fill within 24 hours."
+
+      - alert: HostUnusualNetworkErrors
+        expr: rate(node_network_transmit_errs_total[5m]) > 0.5 or rate(node_network_receive_errs_total[5m]) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Unusual network errors on {{ $labels.instance }} ({{ $labels.device }})"
+          description: "Network errors > 0.5/s on {{ $labels.device }} of {{ $labels.instance }} for 10m (current: {{ $value | printf \"%.2f\" }} err/s)."
+
+      - alert: HostClockSkew
+        expr: abs(node_timex_offset_seconds) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Clock skew detected on {{ $labels.instance }}"
+          description: "NTP clock offset > 50ms on {{ $labels.instance }} for 5m (current: {{ $value | printf \"%.4f\" }}s)."
+
+      - alert: HostFilesystemReadOnly
+        expr: node_filesystem_readonly{fstype!~"tmpfs|squashfs|vfat|overlay|fuse.lxcfs"} == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Filesystem on {{ $labels.instance }} ({{ $labels.mountpoint }}) is read-only"
+          description: "{{ $labels.mountpoint }} on {{ $labels.instance }} mounted read-only — likely a kernel-level I/O fault."

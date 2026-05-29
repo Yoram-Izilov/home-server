@@ -1,0 +1,15 @@
+# Secrets — injected at deploy time from Jenkins credentials, never committed
+monitoring/.env
+monitoring/alertmanager/discord-webhook-url
+*-webhook-url
+*.key
+*.pem
+*.htpasswd
+
+# Local, machine-specific Claude permission allow-list
+.claude/settings.local.json
+
+# OS cruft
+desktop.ini
+Thumbs.db
+.DS_Store

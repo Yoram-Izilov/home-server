@@ -1,0 +1,14 @@
+# Normalize line endings; let git infer text vs binary.
+* text=auto
+
+# These are rsynced to / parsed on a Linux host. Force LF so a CRLF checkout on
+# Windows can't break a config file or a deployed script.
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.json      text eol=lf
+*.sh        text eol=lf
+Jenkinsfile text eol=lf
+Dockerfile  text eol=lf
+
+# Claude hooks run via powershell.exe on the Windows dev box — keep CRLF.
+*.ps1       text eol=crlf
