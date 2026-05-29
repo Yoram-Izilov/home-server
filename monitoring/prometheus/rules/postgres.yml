@@ -1,0 +1,100 @@
+groups:
+  - name: postgres
+    interval: 30s
+    rules:
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "postgres_exporter cannot reach the database. The Discord bot's slash commands and background tasks will fail until this clears."
+
+      - alert: PostgresExporterScrapeErrors
+        expr: rate(pg_exporter_last_scrape_error[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "postgres_exporter scrape errors"
+          description: "postgres_exporter is reporting scrape errors. Some PostgreSQL metrics may be missing — check exporter logs (docker logs postgres-exporter)."
+
+      - alert: PostgresTooManyConnections
+        expr: |
+          sum(pg_stat_database_numbackends{datname!~"template.*|postgres|"})
+          /
+          max(pg_settings_max_connections)
+          > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL connections > 80% of max"
+          description: "Active connections exceed 80% of max_connections for 5m (current ratio: {{ $value | printf \"%.2f\" }}). The asyncpg pool may be leaking or undersized."
+
+      - alert: PostgresDeadlocks
+        expr: increase(pg_stat_database_deadlocks{datname!~"template.*|postgres"}[10m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL deadlocks on {{ $labels.datname }}"
+          description: "{{ $value }} deadlock(s) in the last 10m on {{ $labels.datname }}. Inspect concurrent transactions — likely two requests touching rss_feeds + rss_subscriptions in opposite order."
+
+      - alert: PostgresHighRollbackRatio
+        expr: |
+          (
+            rate(pg_stat_database_xact_rollback{datname!~"template.*|postgres"}[5m])
+            /
+            (
+              rate(pg_stat_database_xact_commit{datname!~"template.*|postgres"}[5m])
+              + rate(pg_stat_database_xact_rollback{datname!~"template.*|postgres"}[5m])
+            )
+          ) > 0.1
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL rollback ratio > 10% on {{ $labels.datname }}"
+          description: "More than 10% of transactions are rolling back over 15m on {{ $labels.datname }} (current ratio: {{ $value | printf \"%.2f\" }}). Likely a constraint violation or application bug."
+
+      - alert: PostgresLowCacheHitRatio
+        expr: |
+          (
+            sum by (datname) (rate(pg_stat_database_blks_hit{datname!~"template.*|postgres"}[5m]))
+            /
+            (
+              sum by (datname) (rate(pg_stat_database_blks_hit{datname!~"template.*|postgres"}[5m]))
+              + sum by (datname) (rate(pg_stat_database_blks_read{datname!~"template.*|postgres"}[5m]))
+            )
+          ) < 0.90
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL cache hit ratio < 90% on {{ $labels.datname }}"
+          description: "Buffer cache hit ratio for {{ $labels.datname }} is below 90% for 30m (current: {{ $value | printf \"%.2f\" }}). Working set may not fit in shared_buffers."
+
+      - alert: PostgresDatabaseBloatedDeadTuples
+        expr: |
+          (
+            pg_stat_user_tables_n_dead_tup
+            /
+            (pg_stat_user_tables_n_live_tup + pg_stat_user_tables_n_dead_tup + 1)
+          ) > 0.2 and pg_stat_user_tables_n_dead_tup > 10000
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Postgres table {{ $labels.relname }} > 20% dead tuples"
+          description: "{{ $labels.datname }}.{{ $labels.relname }} has more dead tuples than 20% of live ones. autovacuum may be falling behind."
+
+      - alert: PostgresLongRunningQuery
+        expr: pg_stat_activity_max_tx_duration{datname!~"template.*|postgres", state="active"} > 60
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL query running > 60s on {{ $labels.datname }}"
+          description: "A query on {{ $labels.datname }} has been running for {{ $value | printf \"%.0f\" }}s. Check pg_stat_activity for the offending PID."

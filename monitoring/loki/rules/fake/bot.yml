@@ -1,0 +1,66 @@
+groups:
+  - name: bot
+    interval: 1m
+    rules:
+      - alert: BotErrorLogSpike
+        expr: sum(rate({container="mydiscordbot"} |= "[ERROR]" [5m])) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Discord bot ERROR log rate > 0.5/s"
+          description: "Bot is logging ERRORs at {{ $value | printf \"%.2f\" }}/s over the last 5m. Check bot.log for the cause."
+
+      - alert: BotUnhandledException
+        expr: sum(count_over_time({container="mydiscordbot"} |= "Traceback (most recent call last)" [5m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Unhandled exception in Discord bot"
+          description: "A Python traceback was logged in the last 5m. Inspect bot.log for the stack trace."
+
+      - alert: RSSCheckHeartbeatMissing
+        expr: (sum(count_over_time({container="mydiscordbot"} |= "rss_check_complete" [3h])) or vector(0)) == 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Hourly RSS check has not completed in 3 hours"
+          description: "_run_new_episode_check_logic has not logged 'rss_check_complete' in 3h. The background task loop may be stuck."
+
+      - alert: AnimeCheckHeartbeatMissing
+        expr: (sum(count_over_time({container="mydiscordbot"} |= "anime_check_complete" [30h])) or vector(0)) == 0
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Daily anime check has not completed in 30 hours"
+          description: "check_for_new_anime has not logged 'anime_check_complete' in 30h. The daily MAL refresh task may be stuck."
+
+      - alert: MALScrapeFailing
+        expr: sum(count_over_time({container="mydiscordbot"} |= "mal scrape failed" [30m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MAL scrape failing repeatedly"
+          description: "More than 2 'mal scrape failed' lines in the last 30m. Selenium / Chromium / MAL HTML may have broken."
+
+      - alert: TormagFailing
+        expr: sum(count_over_time({container="mydiscordbot"} |= "tormag conversion failed" [30m])) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "tormag.ezpz.work conversion failing"
+          description: "More than 2 tormag failures in 30m. New-episode announcements will fall back to raw magnet links until this clears."
+
+      - alert: YtdlpExtractionFailing
+        expr: sum(count_over_time({container="mydiscordbot"} |= "yt-dlp extraction failed" [10m])) > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "yt-dlp extraction failing repeatedly"
+          description: "More than 5 yt-dlp failures in 10m. YouTube may have changed its API or yt-dlp needs an upgrade."

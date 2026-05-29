@@ -1,0 +1,35 @@
+groups:
+  - name: postgres
+    interval: 1m
+    rules:
+      - alert: BotDBPoolNotInitialized
+        expr: |
+          (sum(count_over_time({container="mydiscordbot"} |= "Logged in as" [1h])) or vector(0)) > 0
+          and
+          (sum(count_over_time({container="mydiscordbot"} |= "asyncpg pool initialised" [1h])) or vector(0)) == 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Bot is logged in but asyncpg pool was not initialised"
+          description: "Bot logged 'Logged in as' but no 'asyncpg pool initialised' line in the last hour. DB-backed slash commands will crash on first use."
+
+      - alert: BotDBLogErrors
+        expr: |
+          sum(count_over_time({container="mydiscordbot"} |~ "(?i)asyncpg|postgres" |= "ERROR" [10m])) > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Repeated asyncpg / postgres errors in bot logs"
+          description: "More than 3 asyncpg/postgres ERROR lines in the last 10m. DB queries may be failing — check bot.log for context."
+
+      - alert: PostgresContainerErrors
+        expr: |
+          sum(count_over_time({container=~"discord-py-db-1|db|postgres"} |~ "(?i)FATAL|PANIC|deadlock detected|out of memory" [10m])) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Postgres container reported FATAL/PANIC/deadlock"
+          description: "Postgres logs contain FATAL, PANIC, deadlock, or OOM lines in the last 10m. Inspect the container with `docker logs <postgres-container>`."

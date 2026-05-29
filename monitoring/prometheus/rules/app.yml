@@ -1,0 +1,63 @@
+groups:
+  - name: app
+    interval: 30s
+    rules:
+      - alert: BotNotEmittingTraces
+        expr: absent_over_time(traces_spanmetrics_calls_total{service_name="mydiscordbot"}[10m])
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Discord bot is not emitting traces"
+          description: "No spans observed for service=mydiscordbot in the last 10m. Bot is likely down, disconnected, or OTel pipeline is broken."
+
+      - alert: BotHighSpanErrorRate
+        expr: |
+          (
+            sum(rate(traces_spanmetrics_calls_total{service_name="mydiscordbot", status_code="STATUS_CODE_ERROR"}[5m]))
+            /
+            sum(rate(traces_spanmetrics_calls_total{service_name="mydiscordbot"}[5m]))
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Discord bot span error rate > 5%"
+          description: ">5% of spans on service=mydiscordbot are STATUS_CODE_ERROR over the last 5m (current: {{ $value | printf \"%.3f\" }}). Check Tempo for failing operations."
+
+      - alert: BotSlashCommandLatencyP95High
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le, span_name) (
+              rate(traces_spanmetrics_latency_bucket{service_name="mydiscordbot", span_kind="SPAN_KIND_SERVER"}[5m])
+            )
+          ) > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slash command p95 latency > 5s ({{ $labels.span_name }})"
+          description: "p95 latency for {{ $labels.span_name }} on service=mydiscordbot has exceeded 5s for 10m (current: {{ $value | printf \"%.2f\" }}s)."
+
+      - alert: BotMALScrapeFailing
+        expr: |
+          sum(rate(traces_spanmetrics_calls_total{service_name="mydiscordbot", span_name=~".*scrape_mal.*", status_code="STATUS_CODE_ERROR"}[5m])) > 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MAL scrape is failing consistently"
+          description: "scrape_mal spans have been erroring for 30m. Selenium / Chromium / MAL HTML may have broken."
+
+      - alert: BotDBOperationErrors
+        expr: |
+          sum by (span_name) (
+            rate(traces_spanmetrics_calls_total{service_name="mydiscordbot", span_name=~"(roulette|rss|mal|anime_list)_.*|init_pool|ensure_schema", status_code="STATUS_CODE_ERROR"}[5m])
+          ) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DB helper {{ $labels.span_name }} is erroring"
+          description: "asyncpg helper {{ $labels.span_name }} has been erroring for 10m. Cross-reference with the postgres-exporter dashboard and the asyncpg/postgres entries in bot logs."

@@ -1,0 +1,53 @@
+groups:
+  - name: stack
+    interval: 30s
+    rules:
+      - alert: PrometheusConfigReloadFailed
+        expr: prometheus_config_last_reload_successful == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus config reload failed on {{ $labels.instance }}"
+          description: "Prometheus on {{ $labels.instance }} failed to reload its config. Check logs (docker compose logs prometheus)."
+
+      - alert: PrometheusRuleEvaluationFailures
+        expr: increase(prometheus_rule_evaluation_failures_total[10m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus rule evaluation failures on {{ $labels.instance }}"
+          description: "{{ $value }} rule evaluations failed in the last 10m on {{ $labels.instance }}. Likely a malformed expression in a rule file."
+
+      - alert: AlertmanagerNotificationFailures
+        expr: rate(alertmanager_notifications_failed_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Alertmanager notifications failing ({{ $labels.integration }})"
+          description: "Alertmanager {{ $labels.instance }} cannot deliver {{ $labels.integration }} notifications. Discord alerts will be silently lost until this clears."
+
+      - alert: LokiRequestErrors
+        expr: |
+          (
+            sum by (instance) (rate(loki_request_duration_seconds_count{status_code=~"5.."}[5m]))
+            /
+            sum by (instance) (rate(loki_request_duration_seconds_count[5m]))
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Loki 5xx error ratio > 5% on {{ $labels.instance }}"
+          description: "Loki on {{ $labels.instance }} is returning 5xx for >5% of requests over the last 5m (current ratio: {{ $value | printf \"%.3f\" }})."
+
+      - alert: TempoIngestionErrors
+        expr: sum by (instance) (rate(tempo_distributor_push_failures_total[5m])) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tempo distributor rejecting spans on {{ $labels.instance }}"
+          description: "Tempo distributor on {{ $labels.instance }} is failing pushes at {{ $value | printf \"%.3f\" }}/s. Traces are being dropped."
