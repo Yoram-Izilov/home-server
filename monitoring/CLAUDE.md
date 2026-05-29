@@ -19,12 +19,23 @@ All services are defined in `docker-compose.yml` and joined to the `monitoring` 
 | `otel-collector` | `otel/opentelemetry-collector-contrib:0.111.0` | OTel gateway. Exposes `4317`/`4318`. |
 | `alertmanager` | `prom/alertmanager:v0.28.1` | Alerts → Discord webhook. |
 | `pyroscope` | `grafana/pyroscope:1.10.0` | Continuous profiling. Bot pushes to `http://pyroscope:4040`. |
+| `blackbox-exporter` | `prom/blackbox-exporter:v0.27.0` | Black-box HTTP/TLS uptime probes. Config in `blackbox/blackbox.yml`. Scraped via the `blackbox-portfolio` job in `prometheus.yml`. |
 
 `postgres-exporter` runs in the **`discord-py`** root `docker-compose.yml` (not here) and is scraped by this Prometheus at `postgres-exporter:9187` over the shared `monitoring_monitoring` network.
 
 The bot exports traces to `tempo:4317` (hardcoded in the bot's `bot.py`) and profiles to `http://pyroscope:4040`.
 
 > Some bundled dashboards/rules are still bot-specific (`grafana/dashboards/discord-bot.json`, `prometheus/rules/app.yml`, `loki/rules/fake/bot.yml`, `prometheus/rules/postgres.yml`). They came along with the move and stay valid because the bot still scrapes/traces into this stack. Treat them as monitoring assets for the bot service, alongside the host/stack/postgres rules.
+
+### Portfolio assets
+
+The `portfolio` site (a separate repo) is monitored entirely from here, with no scrape target of its own:
+
+- **Logs/visitors** — the `portfolio` container logs structured JSON access lines to stdout, which Promtail already ships to Loki via Docker SD (`{container="portfolio"}`). No Promtail change is needed.
+- **Recording rules + alert** — `loki/rules/fake/portfolio.yml` computes `portfolio:unique_visitors:1d` / `portfolio:requests:1d` and a `Portfolio5xxSpike` alert. The recording rules are remote-written to Prometheus (see the ruler `remote_write` block in `loki/loki-config.yaml`) so they outlive Loki's 7d retention and feed the "all-time" dashboard panels.
+- **Uptime/TLS** — the `blackbox-portfolio` Prometheus job probes `https://www.yoram-izilov.com`; `prometheus/rules/portfolio.yml` alerts on `PortfolioDown` / `PortfolioCertExpiringSoon` / `PortfolioSlowResponse`.
+- **Tracing** — the portfolio nginx ships per-request spans (`service.name=portfolio`) to `otel-collector:4317`. For this to resolve, the `portfolio` container joins **`monitoring_monitoring`** in addition to `nginx_nginx_network` (the "needs observability + routing → both networks" pattern). Tempo's `metrics_generator` then produces span-metrics + a service map automatically.
+- **Dashboard** — `grafana/dashboards/portfolio.json` ("Portfolio — Traffic & Health", uid `portfolio-traffic`).
 
 ## Deploy flow
 
