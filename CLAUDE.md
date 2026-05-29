@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `home-server` is the central infrastructure repo for the self-hosted box that runs at `yoram-izilov.com`. It owns the shared services that the application repos depend on — not the apps themselves.
 
-**Today** it holds the **monitoring stack** (`monitoring/`). The Discord bot (`discord-py`) and the portfolio site (`portfolio`) live in their own repos and *consume* infrastructure defined here.
+**Today** it holds the **monitoring stack** (`monitoring/`) and the **Jenkins controller** (`jenkins/`) that runs CI/CD for every repo. The Discord bot (`discord-py`) and the portfolio site (`portfolio`) live in their own repos and *consume* infrastructure defined here.
 
-**Planned** (documented, not yet built — see [Planned structure](#planned-structure)): the host **nginx** reverse proxy and **Jenkins** config will move in here too, so all shared infra lives in one place.
+**Planned** (documented, not yet built — see [Planned structure](#planned-structure)): the host **nginx** reverse proxy will move in here too, so all shared infra lives in one place.
 
 There is no application code and no test suite here — everything is declarative config (Docker Compose, Prometheus rules, Grafana dashboards, Alertmanager routing). Verify changes by validating configs and bringing the stack up; see [Verifying changes](#verifying-changes).
 
@@ -75,8 +75,8 @@ As shared services move in, the repo will grow to:
 ```
 home-server/
   monitoring/      ← observability stack (built — see monitoring/CLAUDE.md)
+  jenkins/         ← Jenkins controller compose + Dockerfile (built — see jenkins/CLAUDE.md)
   nginx/           ← PLANNED: host reverse proxy, *.yoram-izilov.com subdomain routing
-  jenkins/         ← PLANNED: Jenkins controller compose + config
 ```
 
 Two external Docker networks tie the box together. Apps join them; `home-server` owns them:
