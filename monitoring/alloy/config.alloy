@@ -1,0 +1,46 @@
+// Grafana Alloy — eBPF continuous profiling for the portfolio nginx container.
+//
+// The portfolio is static nginx (C), so there is no Pyroscope SDK to embed the way the
+// Python bot does. Instead Alloy samples the process from the kernel via eBPF and pushes
+// CPU profiles to Pyroscope, tagged service_name="portfolio" so they line up with the
+// nginx OTel traces (Tempo's traces->profiles link keys on service.name).
+//
+// Scope is intentionally just the portfolio container: discover host processes, join Docker
+// metadata by container id, keep only /portfolio, and profile those PIDs.
+
+discovery.docker "containers" {
+	host = "unix:///var/run/docker.sock"
+}
+
+// List host processes (provides __process_pid__ and __container_id__) and merge the Docker
+// container labels in on the shared container id.
+discovery.process "all" {
+	join = discovery.docker.containers.targets
+}
+
+// Keep only the portfolio container's processes and stamp the Pyroscope service name.
+discovery.relabel "portfolio" {
+	targets = discovery.process.all.targets
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/portfolio"
+		action        = "keep"
+	}
+
+	rule {
+		target_label = "service_name"
+		replacement  = "portfolio"
+	}
+}
+
+pyroscope.ebpf "portfolio" {
+	forward_to = [pyroscope.write.pyroscope.receiver]
+	targets    = discovery.relabel.portfolio.output
+}
+
+pyroscope.write "pyroscope" {
+	endpoint {
+		url = "http://pyroscope:4040"
+	}
+}

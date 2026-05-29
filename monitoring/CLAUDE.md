@@ -18,8 +18,9 @@ All services are defined in `docker-compose.yml` and joined to the `monitoring` 
 | `tempo` | `grafana/tempo:2.10.5` | Traces. Receives OTel on `4317`. |
 | `otel-collector` | `otel/opentelemetry-collector-contrib:0.111.0` | OTel gateway. Exposes `4317`/`4318`. |
 | `alertmanager` | `prom/alertmanager:v0.28.1` | Alerts → Discord webhook. |
-| `pyroscope` | `grafana/pyroscope:1.10.0` | Continuous profiling. Bot pushes to `http://pyroscope:4040`. |
+| `pyroscope` | `grafana/pyroscope:1.10.0` | Continuous profiling. Bot pushes via SDK; the portfolio nginx is profiled via eBPF by `alloy`. Both at `http://pyroscope:4040`. |
 | `blackbox-exporter` | `prom/blackbox-exporter:v0.27.0` | Black-box HTTP/TLS uptime probes. Config in `blackbox/blackbox.yml`. Scraped via the `blackbox-portfolio` job in `prometheus.yml`. |
+| `alloy` | `grafana/alloy:v1.10.0` | eBPF profiler. Config in `alloy/config.alloy`. Profiles the `portfolio` nginx process and pushes CPU profiles to Pyroscope as `service_name=portfolio`. Runs `privileged` + `pid: host` (eBPF requirement). |
 
 `postgres-exporter` runs in the **`discord-py`** root `docker-compose.yml` (not here) and is scraped by this Prometheus at `postgres-exporter:9187` over the shared `monitoring_monitoring` network.
 
@@ -35,6 +36,7 @@ The `portfolio` site (a separate repo) is monitored entirely from here, with no 
 - **Recording rules + alert** — `loki/rules/fake/portfolio.yml` computes `portfolio:unique_visitors:1d` / `portfolio:requests:1d` and a `Portfolio5xxSpike` alert. The recording rules are remote-written to Prometheus (see the ruler `remote_write` block in `loki/loki-config.yaml`) so they outlive Loki's 7d retention and feed the "all-time" dashboard panels.
 - **Uptime/TLS** — the `blackbox-portfolio` Prometheus job probes `https://www.yoram-izilov.com`; `prometheus/rules/portfolio.yml` alerts on `PortfolioDown` / `PortfolioCertExpiringSoon` / `PortfolioSlowResponse`.
 - **Tracing** — the portfolio nginx ships per-request spans (`service.name=portfolio`) to `otel-collector:4317`. For this to resolve, the `portfolio` container joins **`monitoring_monitoring`** in addition to `nginx_nginx_network` (the "needs observability + routing → both networks" pattern). Tempo's `metrics_generator` then produces span-metrics + a service map automatically.
+- **Profiling** — nginx has no Pyroscope SDK, so the `alloy` service profiles the portfolio process via **eBPF** (`alloy/config.alloy`: discover host processes → join Docker labels → keep `/portfolio` → `pyroscope.ebpf`) and pushes CPU profiles to Pyroscope as `service_name=portfolio`, matching the trace service name so Tempo's traces→profiles link resolves. eBPF profiles are CPU (`process_cpu`) rather than the bot's `wall` type, so the Tempo datasource's `tracesToProfilesV2.profileTypeId` may need a CPU profile type to deep-link automatically.
 - **Dashboard** — `grafana/dashboards/portfolio.json` ("Portfolio — Traffic & Health", uid `portfolio-traffic`).
 
 ## Deploy flow
