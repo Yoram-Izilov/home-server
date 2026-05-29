@@ -1,0 +1,29 @@
+groups:
+  - name: portfolio
+    rules:
+      - alert: PortfolioDown
+        expr: probe_success{job="blackbox-portfolio"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "portfolio site is unreachable"
+          description: "The black-box probe of {{ $labels.instance }} has failed for 2m. Check the portfolio container, the host reverse proxy, and DNS/TLS."
+
+      - alert: PortfolioCertExpiringSoon
+        expr: (probe_ssl_earliest_cert_expiry{job="blackbox-portfolio"} - time()) < 14 * 24 * 3600
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "portfolio TLS certificate expiring soon"
+          description: "The certificate for {{ $labels.instance }} expires in less than 14 days ({{ $value | humanizeDuration }}). Renew it."
+
+      - alert: PortfolioSlowResponse
+        expr: probe_duration_seconds{job="blackbox-portfolio"} > 3
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "portfolio probe is slow"
+          description: "End-to-end probe of {{ $labels.instance }} has taken > 3s for 10m ({{ $value | printf \"%.2f\" }}s)."
