@@ -44,7 +44,7 @@
         {
           "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
-          "expr": "count(sum by (remote_addr) (count_over_time({container=\"portfolio\"} | json remote_addr=\"remote_addr\" [24h])))",
+          "expr": "count(sum by (remote_addr) (count_over_time({container=\"portfolio\"} | json remote_addr=\"remote_addr\" | __error__=\"\" [24h])))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -79,7 +79,7 @@
         {
           "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
-          "expr": "count(sum by (remote_addr) (count_over_time({container=\"portfolio\"} | json remote_addr=\"remote_addr\" [7d])))",
+          "expr": "count(sum by (remote_addr) (count_over_time({container=\"portfolio\"} | json remote_addr=\"remote_addr\" | __error__=\"\" [7d])))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -150,7 +150,7 @@
         {
           "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
-          "expr": "sum(count_over_time({container=\"portfolio\"} | json [24h]))",
+          "expr": "sum(count_over_time({container=\"portfolio\"} | json | __error__=\"\" [24h]))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -213,7 +213,7 @@
         {
           "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
-          "expr": "sum(count_over_time({container=\"portfolio\"} | json [$__auto]))",
+          "expr": "sum(count_over_time({container=\"portfolio\"} | json | __error__=\"\" [$__auto]))",
           "legendFormat": "requests",
           "queryType": "range",
           "refId": "A"
@@ -245,7 +245,7 @@
         {
           "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
-          "expr": "sum by (status) (count_over_time({container=\"portfolio\"} | json status=\"status\" [$__auto]))",
+          "expr": "sum by (status) (count_over_time({container=\"portfolio\"} | json status=\"status\" | __error__=\"\" [$__auto]))",
           "legendFormat": "{{status}}",
           "queryType": "range",
           "refId": "A"
@@ -281,7 +281,7 @@
         {
           "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
-          "expr": "sum(rate({container=\"portfolio\"} | json status=\"status\" | status >= 400 [5m]))",
+          "expr": "sum(rate({container=\"portfolio\"} | json status=\"status\" | __error__=\"\" | status >= 400 [5m]))",
           "queryType": "instant",
           "refId": "A"
         }
@@ -418,7 +418,7 @@
         {
           "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
-          "expr": "max(quantile_over_time(0.5, {container=\"portfolio\"} | json request_time=\"request_time\" | unwrap request_time [$__auto]))",
+          "expr": "max(quantile_over_time(0.5, {container=\"portfolio\"} | json request_time=\"request_time\" | unwrap request_time | __error__=\"\" [$__auto]))",
           "legendFormat": "p50",
           "queryType": "range",
           "refId": "A"
@@ -426,7 +426,7 @@
         {
           "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
-          "expr": "max(quantile_over_time(0.95, {container=\"portfolio\"} | json request_time=\"request_time\" | unwrap request_time [$__auto]))",
+          "expr": "max(quantile_over_time(0.95, {container=\"portfolio\"} | json request_time=\"request_time\" | unwrap request_time | __error__=\"\" [$__auto]))",
           "legendFormat": "p95",
           "queryType": "range",
           "refId": "B"
@@ -434,7 +434,7 @@
         {
           "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
-          "expr": "max(quantile_over_time(0.99, {container=\"portfolio\"} | json request_time=\"request_time\" | unwrap request_time [$__auto]))",
+          "expr": "max(quantile_over_time(0.99, {container=\"portfolio\"} | json request_time=\"request_time\" | unwrap request_time | __error__=\"\" [$__auto]))",
           "legendFormat": "p99",
           "queryType": "range",
           "refId": "C"
@@ -466,7 +466,7 @@
         {
           "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
-          "expr": "sum(sum_over_time({container=\"portfolio\"} | json bytes_sent=\"bytes_sent\" | unwrap bytes_sent [$__auto]))",
+          "expr": "sum(sum_over_time({container=\"portfolio\"} | json bytes_sent=\"bytes_sent\" | unwrap bytes_sent | __error__=\"\" [$__auto]))",
           "legendFormat": "bytes sent",
           "queryType": "range",
           "refId": "A"

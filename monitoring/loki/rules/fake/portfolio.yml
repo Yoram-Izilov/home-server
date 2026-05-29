@@ -5,20 +5,21 @@ groups:
       # Distinct client IPs seen in the last 24h. Remote-written to Prometheus so it
       # survives Loki's 7d retention; the dashboard sums it into "all-time" visitor-days
       # and reads it for the 30d window. `| json remote_addr="remote_addr"` extracts only
-      # the IP (keeps query cardinality low); sum-by collapses to one series per IP and
-      # count() yields the number of unique IPs.
+      # the IP (keeps query cardinality low) and `| __error__=""` drops nginx's plain-text
+      # error/startup lines that share the stream and aren't JSON; sum-by collapses to one
+      # series per IP and count() yields the number of unique IPs.
       - record: portfolio:unique_visitors:1d
         expr: |
-          count(sum by (remote_addr) (count_over_time({container="portfolio"} | json remote_addr="remote_addr" [1d])))
+          count(sum by (remote_addr) (count_over_time({container="portfolio"} | json remote_addr="remote_addr" | __error__="" [1d])))
 
       # Requests served in the last 24h (page-view volume), persisted for the same reason.
       - record: portfolio:requests:1d
         expr: |
-          sum(count_over_time({container="portfolio"} | json [1d]))
+          sum(count_over_time({container="portfolio"} | json | __error__="" [1d]))
 
       - alert: Portfolio5xxSpike
         expr: |
-          sum(rate({container="portfolio"} | json status="status" | status >= 500 [5m])) > 0.2
+          sum(rate({container="portfolio"} | json status="status" | __error__="" | status >= 500 [5m])) > 0.2
         for: 10m
         labels:
           severity: warning
