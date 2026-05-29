@@ -39,6 +39,12 @@ pipeline {
                         umask 133
                         printf "%s" "$DISCORD_WEBHOOK_URL" > "$MONITORING_DEPLOY_PATH/alertmanager/discord-webhook-url"
                         docker compose -p monitoring -f "$MONITORING_DEPLOY_PATH/docker-compose.yml" up -d
+                        # Prometheus does not watch its bind-mounted config, and `up -d` won't
+                        # recreate it when only prometheus.yml / rules/ content changed — so a
+                        # plain deploy leaves the old config running. Restart it to pick up
+                        # scrape-target and alert-rule changes. (`restart` re-reads the mounted
+                        # config; the TSDB is preserved in the prometheus_data volume.)
+                        docker compose -p monitoring -f "$MONITORING_DEPLOY_PATH/docker-compose.yml" restart prometheus
                     '''
                 }
             }
