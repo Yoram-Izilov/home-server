@@ -18,7 +18,7 @@ groups:
           severity: warning
         annotations:
           summary: "postgres_exporter scrape errors"
-          description: "postgres_exporter is reporting scrape errors. Some PostgreSQL metrics may be missing — check exporter logs (docker logs postgres-exporter)."
+          description: "postgres_exporter is reporting scrape errors. Some PostgreSQL metrics may be missing - check exporter logs (docker logs postgres-exporter)."
 
       - alert: PostgresTooManyConnections
         expr: |
@@ -40,7 +40,7 @@ groups:
           severity: warning
         annotations:
           summary: "PostgreSQL deadlocks on {{ $labels.datname }}"
-          description: "{{ $value }} deadlock(s) in the last 10m on {{ $labels.datname }}. Inspect concurrent transactions — likely two requests touching rss_feeds + rss_subscriptions in opposite order."
+          description: "{{ $value }} deadlock(s) in the last 10m on {{ $labels.datname }}. Inspect concurrent transactions - likely two requests touching rss_feeds + rss_subscriptions in opposite order."
 
       - alert: PostgresHighRollbackRatio
         expr: |

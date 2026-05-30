@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-`home-server` is the central infrastructure repo for the self-hosted box that runs at `yoram-izilov.com`. It owns the shared services that the application repos depend on — not the apps themselves.
+`home-server` is the central infrastructure repo for the self-hosted box that runs at `yoram-izilov.com`. It owns the shared services that the application repos depend on - not the apps themselves.
 
 **Today** it holds the **monitoring stack** (`monitoring/`) and the **Jenkins controller** (`jenkins/`) that runs CI/CD for every repo. The Discord bot (`discord-py`) and the portfolio site (`portfolio`) live in their own repos and *consume* infrastructure defined here.
 
-**Planned** (documented, not yet built — see [Planned structure](#planned-structure)): the host **nginx** reverse proxy will move in here too, so all shared infra lives in one place.
+**Planned** (documented, not yet built - see [Planned structure](#planned-structure)): the host **nginx** reverse proxy will move in here too, so all shared infra lives in one place.
 
-There is no application code and no test suite here — everything is declarative config (Docker Compose, Prometheus rules, Grafana dashboards, Alertmanager routing). Verify changes by validating configs and bringing the stack up; see [Verifying changes](#verifying-changes).
+There is no application code and no test suite here - everything is declarative config (Docker Compose, Prometheus rules, Grafana dashboards, Alertmanager routing). Verify changes by validating configs and bringing the stack up; see [Verifying changes](#verifying-changes).
 
 ## Running locally
 
@@ -22,7 +22,7 @@ cd monitoring
 echo 'GRAFANA_ADMIN_PASSWORD=changeme' > .env
 printf '%s' 'https://discord.com/api/webhooks/...' > alertmanager/discord-webhook-url
 
-# bring the stack up — the -p monitoring project name is REQUIRED (see below)
+# bring the stack up - the -p monitoring project name is REQUIRED (see below)
 docker compose -p monitoring up -d
 ```
 
@@ -32,13 +32,13 @@ Then: Grafana → http://localhost:3000, Prometheus → http://localhost:9090, A
 
 `Jenkinsfile` deploys the monitoring stack:
 
-1. **Deploy** — `rsync -a --delete monitoring/` to `MONITORING_DEPLOY_PATH` on the host, writes the webhook secret to `alertmanager/discord-webhook-url`, then `docker compose -p monitoring -f .../docker-compose.yml up -d`.
-2. **Remove Dangling Images** — prunes leftover image layers.
-3. **Verify** — asserts `prometheus`, `grafana`, `alertmanager`, `loki`, `tempo` containers are running.
+1. **Deploy** - `rsync -a --delete monitoring/` to `MONITORING_DEPLOY_PATH` on the host, writes the webhook secret to `alertmanager/discord-webhook-url`, then `docker compose -p monitoring -f .../docker-compose.yml up -d`.
+2. **Remove Dangling Images** - prunes leftover image layers.
+3. **Verify** - asserts `prometheus`, `grafana`, `alertmanager`, `loki`, `tempo` containers are running.
 
-Config linting is **not** part of the pipeline — validate locally before pushing (see [Verifying changes](#verifying-changes) or run `/sync-monitoring-config`).
+Config linting is **not** part of the pipeline - validate locally before pushing (see [Verifying changes](#verifying-changes) or run `/sync-monitoring-config`).
 
-### Invariants — do not break these
+### Invariants - do not break these
 
 - **`-p monitoring` is mandatory.** It pins the Compose project name so the network resolves to `monitoring_monitoring`. The `discord-py` bot attaches to that exact name as an `external` network to reach `tempo:4317` and `pyroscope:4040`. Rename it and the bot silently stops tracing.
 - **Pin every image.** Every service uses an exact tag (e.g. `prom/prometheus:v3.11.3`), never `:latest`. Reproducible deploys only.
@@ -62,13 +62,13 @@ Nine services, all defined in `monitoring/docker-compose.yml` on the `monitoring
 | `node-exporter` | `prom/node-exporter:v1.11.1` | host | Host system metrics (`network_mode: host`). |
 | `grafana` | `grafana/grafana:13.0.1` | 3000 | Dashboards + datasources, provisioned from `grafana/`. |
 | `loki` | `grafana/loki:3.7.2` | 3100 | Log aggregation. Log-based rules in `loki/rules/fake/`. |
-| `promtail` | `grafana/promtail:3.4.1` | — | Ships Docker + `/var/log` logs to Loki. |
+| `promtail` | `grafana/promtail:3.4.1` | - | Ships Docker + `/var/log` logs to Loki. |
 | `tempo` | `grafana/tempo:2.10.5` | 3200 | Trace storage. Receives OTel on 4317. |
 | `otel-collector` | `otel/opentelemetry-collector-contrib:0.111.0` | 4317/4318 | OTel gateway → Tempo. |
 | `alertmanager` | `prom/alertmanager:v0.28.1` | 9093 | Routes alerts → Discord webhook. |
 | `pyroscope` | `grafana/pyroscope:1.10.0` | 4040 | Continuous profiling. |
 
-`postgres-exporter` is **not** here — it lives in `discord-py`'s root compose (it's the bot's database) and joins `monitoring_monitoring`, where this Prometheus scrapes it at `postgres-exporter:9187`.
+`postgres-exporter` is **not** here - it lives in `discord-py`'s root compose (it's the bot's database) and joins `monitoring_monitoring`, where this Prometheus scrapes it at `postgres-exporter:9187`.
 
 ## Planned structure
 
@@ -76,15 +76,15 @@ As shared services move in, the repo will grow to:
 
 ```
 home-server/
-  monitoring/      ← observability stack (built — see monitoring/CLAUDE.md)
-  jenkins/         ← Jenkins controller compose + Dockerfile (built — see jenkins/CLAUDE.md)
+  monitoring/      ← observability stack (built - see monitoring/CLAUDE.md)
+  jenkins/         ← Jenkins controller compose + Dockerfile (built - see jenkins/CLAUDE.md)
   nginx/           ← PLANNED: host reverse proxy, *.yoram-izilov.com subdomain routing
 ```
 
 Two external Docker networks tie the box together. Apps join them; `home-server` owns them:
 
-- **`monitoring_monitoring`** — created by `docker compose -p monitoring`. The bot joins it to emit traces/profiles.
-- **`nginx_nginx_network`** — the host nginx network. The `portfolio` container (and future services) join it; nginx proxies `www.yoram-izilov.com` → `http://portfolio:80/` by container name. The reverse-proxy config currently sampled in `portfolio/deploy/nginx-reverse-proxy.conf` is what will move into `nginx/` here.
+- **`monitoring_monitoring`** - created by `docker compose -p monitoring`. The bot joins it to emit traces/profiles.
+- **`nginx_nginx_network`** - the host nginx network. The `portfolio` container (and future services) join it; nginx proxies `www.yoram-izilov.com` → `http://portfolio:80/` by container name. The reverse-proxy config currently sampled in `portfolio/deploy/nginx-reverse-proxy.conf` is what will move into `nginx/` here.
 
 When adding a service that should be both reverse-proxied and monitored, it joins **both** networks.
 
@@ -92,8 +92,8 @@ When adding a service that should be both reverse-proxied and monitored, it join
 
 Never commit these (they're gitignored):
 
-- `monitoring/.env` — holds `GRAFANA_ADMIN_PASSWORD`.
-- `monitoring/alertmanager/discord-webhook-url` — the Discord alert webhook.
+- `monitoring/.env` - holds `GRAFANA_ADMIN_PASSWORD`.
+- `monitoring/alertmanager/discord-webhook-url` - the Discord alert webhook.
 - Any `*.key`, `*.pem`, `*-webhook-url`, `*.htpasswd`.
 
 In production these come from Jenkins credentials; locally they're plain files you create by hand. The `block-sensitive-files` hook blocks `git add` of them.
@@ -105,12 +105,12 @@ In production these come from Jenkins credentials; locally they're plain files y
 ```
 <type>(<scope>): <short summary in imperative mood>
 
-[optional body — wrap at 72 chars]
+[optional body - wrap at 72 chars]
 ```
 
 **Types:** `feat` · `fix` · `refactor` · `chore` · `docs` · `style`
 
-**Scopes** — match the area changed: `monitoring`, `prometheus`, `grafana`, `loki`, `tempo`, `promtail`, `alertmanager`, `pyroscope`, `compose`, `jenkins`, `nginx`, `docs`
+**Scopes** - match the area changed: `monitoring`, `prometheus`, `grafana`, `loki`, `tempo`, `promtail`, `alertmanager`, `pyroscope`, `compose`, `jenkins`, `nginx`, `docs`
 
 **Examples**
 
@@ -129,7 +129,7 @@ The `verify-commit-message` hook enforces this format (blocks on mismatch).
 
 ### Discipline
 
-- **One logical change per commit** — keep `git revert` safe on each one.
+- **One logical change per commit** - keep `git revert` safe on each one.
 - **Work on a branch** (`feat/<slug>`, `fix/<slug>`, `chore/<slug>`), open a PR, never push directly to `main` or force-push it.
 - Never commit secrets (see [Secrets](#secrets)).
 

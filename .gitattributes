@@ -10,5 +10,5 @@
 Jenkinsfile text eol=lf
 Dockerfile  text eol=lf
 
-# Claude hooks run via powershell.exe on the Windows dev box — keep CRLF.
+# Claude hooks run via powershell.exe on the Windows dev box - keep CRLF.
 *.ps1       text eol=crlf

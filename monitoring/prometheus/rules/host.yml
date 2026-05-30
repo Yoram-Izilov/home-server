@@ -54,4 +54,4 @@ groups:
           severity: critical
         annotations:
           summary: "Filesystem on {{ $labels.instance }} ({{ $labels.mountpoint }}) is read-only"
-          description: "{{ $labels.mountpoint }} on {{ $labels.instance }} mounted read-only — likely a kernel-level I/O fault."
+          description: "{{ $labels.mountpoint }} on {{ $labels.instance }} mounted read-only - likely a kernel-level I/O fault."

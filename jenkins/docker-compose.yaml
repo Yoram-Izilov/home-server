@@ -2,7 +2,7 @@
 # repo (the bot, the monitoring stack, future services).
 #
 # Jenkins talks to the HOST Docker daemon via socat (DOCKER_HOST=tcp://socat:2376),
-# so any host path a pipeline deploys to — or that a compose file bind-mounts — MUST be
+# so any host path a pipeline deploys to - or that a compose file bind-mounts - MUST be
 # bind-mounted into this container at the IDENTICAL path. See jenkins/CLAUDE.md.
 #
 #   docker compose up -d --build   # build the image (or after editing Dockerfile) + start
@@ -33,9 +33,9 @@ services:
       - 50000:50000
     volumes:
       - data:/var/jenkins_home
-      # Bot runtime data — DISCORD_DATA_PATH in the discord-py compose (same path host:container).
+      # Bot runtime data - DISCORD_DATA_PATH in the discord-py compose (same path host:container).
       - /home/izilov/Desktop/discord-files:/home/izilov/Desktop/discord-files
-      # Monitoring deploy target — MONITORING_DEPLOY_PATH in home-server's Jenkinsfile
+      # Monitoring deploy target - MONITORING_DEPLOY_PATH in home-server's Jenkinsfile
       # (same path host:container so rsync writes to the host and compose resolves mounts there).
       - /home/izilov/Desktop/home-server-monitoring:/home/izilov/Desktop/home-server-monitoring
     environment:
