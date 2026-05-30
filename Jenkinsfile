@@ -1,8 +1,8 @@
-// home-server CI/CD — deploys the monitoring stack (monitoring/).
+// home-server CI/CD - deploys the monitoring stack (monitoring/).
 //
 // The agent needs the Docker CLI, a usable host Docker daemon, and rsync.
 //
-// Jenkins credentials (secret text) — reused from the old discord-py pipeline, so nothing
+// Jenkins credentials (secret text) - reused from the old discord-py pipeline, so nothing
 // has to be recreated:
 //   - grafana-admin-password            -> GRAFANA_ADMIN_PASSWORD (Grafana admin)
 //   - discord-alertmanager-webhook-url  -> written to alertmanager/discord-webhook-url
@@ -13,7 +13,7 @@
 // Jenkins container must have MONITORING_DEPLOY_PATH bind-mounted at the SAME path (owned by
 // the jenkins UID), and `rsync` must be installed in the Jenkins image.
 //
-// Config linting is not run here — validate locally before pushing with the commands in
+// Config linting is not run here - validate locally before pushing with the commands in
 // CLAUDE.md ("Verifying changes") or the sync-monitoring-config skill.
 
 pipeline {
@@ -40,7 +40,7 @@ pipeline {
                         printf "%s" "$DISCORD_WEBHOOK_URL" > "$MONITORING_DEPLOY_PATH/alertmanager/discord-webhook-url"
                         docker compose -p monitoring -f "$MONITORING_DEPLOY_PATH/docker-compose.yml" up -d
                         # Prometheus does not watch its bind-mounted config, and `up -d` won't
-                        # recreate it when only prometheus.yml / rules/ content changed — so a
+                        # recreate it when only prometheus.yml / rules/ content changed - so a
                         # plain deploy leaves the old config running. Restart it to pick up
                         # scrape-target and alert-rule changes. (`restart` re-reads the mounted
                         # config; the TSDB is preserved in the prometheus_data volume.)

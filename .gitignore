@@ -1,4 +1,4 @@
-# Secrets — injected at deploy time from Jenkins credentials, never committed
+# Secrets - injected at deploy time from Jenkins credentials, never committed
 monitoring/.env
 monitoring/alertmanager/discord-webhook-url
 *-webhook-url

@@ -49,7 +49,7 @@
           "refId": "A"
         }
       ],
-      "title": "Unique visitors — today",
+      "title": "Unique visitors - today",
       "type": "stat"
     },
     {
@@ -84,7 +84,7 @@
           "refId": "A"
         }
       ],
-      "title": "Unique visitors — last 7d",
+      "title": "Unique visitors - last 7d",
       "type": "stat"
     },
     {
@@ -119,7 +119,7 @@
           "refId": "A"
         }
       ],
-      "title": "Requests — last 24h",
+      "title": "Requests - last 24h",
       "type": "stat"
     },
     {
@@ -324,7 +324,7 @@
           "refId": "A"
         }
       ],
-      "title": "TLS cert — days left",
+      "title": "TLS cert - days left",
       "type": "stat"
     },
     {
@@ -468,7 +468,7 @@
   "time": { "from": "now-7d", "to": "now" },
   "timepicker": {},
   "timezone": "",
-  "title": "Portfolio — Traffic & Health",
+  "title": "Portfolio - Traffic & Health",
   "uid": "portfolio-traffic",
   "version": 1,
   "weekStart": ""

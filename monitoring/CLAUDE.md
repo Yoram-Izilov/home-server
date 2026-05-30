@@ -2,7 +2,7 @@
 
 Guidance for the monitoring stack. The repo-root `CLAUDE.md` covers `home-server` as a whole; this file loads when something under `monitoring/` is being edited.
 
-This stack used to live inside the `discord-py` repo. It now lives here, in `home-server`, as the single source of truth — but the deployed network name is unchanged (`monitoring_monitoring`), so the bot keeps tracing without any change on its side.
+This stack used to live inside the `discord-py` repo. It now lives here, in `home-server`, as the single source of truth - but the deployed network name is unchanged (`monitoring_monitoring`), so the bot keeps tracing without any change on its side.
 
 ## Stack
 
@@ -32,12 +32,12 @@ The bot exports traces to `tempo:4317` (hardcoded in the bot's `bot.py`) and pro
 
 The `portfolio` site (a separate repo) is monitored entirely from here, with no scrape target of its own:
 
-- **Logs/visitors** — the `portfolio` container logs structured JSON access lines to stdout, which Promtail already ships to Loki via Docker SD (`{container="portfolio"}`). No Promtail change is needed. All visitor panels (today, 7d, rolling-24h over time) query Loki **directly** with `| json ... | __error__=""`, so they are bounded by Loki's 7d retention — there is intentionally no "all-time" panel and no Prometheus rollup.
-- **Alert** — `loki/rules/fake/portfolio.yml` holds a single `Portfolio5xxSpike` log alert (no recording rules / ruler `remote_write` — the dashboard reads Loki directly).
-- **Uptime/TLS** — the `blackbox-portfolio` Prometheus job probes `https://www.yoram-izilov.com`; `prometheus/rules/portfolio.yml` alerts on `PortfolioDown` / `PortfolioCertExpiringSoon` / `PortfolioSlowResponse`.
-- **Tracing** — the portfolio nginx ships per-request spans (`service.name=portfolio`) to `otel-collector:4317`. For this to resolve, the `portfolio` container joins **`monitoring_monitoring`** in addition to `nginx_nginx_network` (the "needs observability + routing → both networks" pattern). Tempo's `metrics_generator` then produces span-metrics + a service map automatically.
-- **Profiling** — nginx has no Pyroscope SDK, so the `alloy` service profiles the portfolio process via **eBPF** (`alloy/config.alloy`: discover host processes → join Docker labels → keep `/portfolio` → `pyroscope.ebpf`) and pushes CPU profiles to Pyroscope as `service_name=portfolio`, matching the trace service name so Tempo's traces→profiles link resolves. eBPF profiles are CPU (`process_cpu`) rather than the bot's `wall` type, so the Tempo datasource's `tracesToProfilesV2.profileTypeId` may need a CPU profile type to deep-link automatically.
-- **Dashboard** — `grafana/dashboards/portfolio.json` ("Portfolio — Traffic & Health", uid `portfolio-traffic`).
+- **Logs/visitors** - the `portfolio` container logs structured JSON access lines to stdout, which Promtail already ships to Loki via Docker SD (`{container="portfolio"}`). No Promtail change is needed. All visitor panels (today, 7d, rolling-24h over time) query Loki **directly** with `| json ... | __error__=""`, so they are bounded by Loki's 7d retention - there is intentionally no "all-time" panel and no Prometheus rollup.
+- **Alert** - `loki/rules/fake/portfolio.yml` holds a single `Portfolio5xxSpike` log alert (no recording rules / ruler `remote_write` - the dashboard reads Loki directly).
+- **Uptime/TLS** - the `blackbox-portfolio` Prometheus job probes `https://www.yoram-izilov.com`; `prometheus/rules/portfolio.yml` alerts on `PortfolioDown` / `PortfolioCertExpiringSoon` / `PortfolioSlowResponse`.
+- **Tracing** - the portfolio nginx ships per-request spans (`service.name=portfolio`) to `otel-collector:4317`. For this to resolve, the `portfolio` container joins **`monitoring_monitoring`** in addition to `nginx_nginx_network` (the "needs observability + routing → both networks" pattern). Tempo's `metrics_generator` then produces span-metrics + a service map automatically.
+- **Profiling** - nginx has no Pyroscope SDK, so the `alloy` service profiles the portfolio process via **eBPF** (`alloy/config.alloy`: discover host processes → join Docker labels → keep `/portfolio` → `pyroscope.ebpf`) and pushes CPU profiles to Pyroscope as `service_name=portfolio`, matching the trace service name so Tempo's traces→profiles link resolves. eBPF profiles are CPU (`process_cpu`) rather than the bot's `wall` type, so the Tempo datasource's `tracesToProfilesV2.profileTypeId` may need a CPU profile type to deep-link automatically.
+- **Dashboard** - `grafana/dashboards/portfolio.json` ("Portfolio - Traffic & Health", uid `portfolio-traffic`).
 
 ## Deploy flow
 
@@ -47,7 +47,7 @@ The repo-root `Jenkinsfile` deploys the stack (Deploy → Remove Dangling Images
 2. Writes the Discord webhook secret to `alertmanager/discord-webhook-url` (gitignored)
 3. `docker compose -p monitoring -f "$MONITORING_DEPLOY_PATH/docker-compose.yml" up -d`
 
-The `-p monitoring` flag pins the project name so the network resolves to `monitoring_monitoring` — the name the bot's root compose expects to attach to as `external: true`. **Do not remove `-p monitoring`** and do not rename the network.
+The `-p monitoring` flag pins the project name so the network resolves to `monitoring_monitoring` - the name the bot's root compose expects to attach to as `external: true`. **Do not remove `-p monitoring`** and do not rename the network.
 
 ## Credentials (Jenkins secret-text)
 
@@ -60,7 +60,7 @@ For local dev: put `GRAFANA_ADMIN_PASSWORD=...` in `monitoring/.env` and the Dis
 
 ## Alertmanager Discord webhook
 
-`alertmanager.yml` references the webhook via `webhook_url_file: /etc/alertmanager/discord-webhook-url` — never inline the URL into the YAML. The file is bind-mounted read-only into the container.
+`alertmanager.yml` references the webhook via `webhook_url_file: /etc/alertmanager/discord-webhook-url` - never inline the URL into the YAML. The file is bind-mounted read-only into the container.
 
 ## Host-path gotcha (Jenkins)
 
@@ -70,7 +70,7 @@ For this to work, the Jenkins container itself must have `MONITORING_DEPLOY_PATH
 
 ## When editing files here
 
-- Touching a Prometheus rule, Grafana dashboard, Tempo config, etc. only requires a redeploy — push to a branch, open a PR; merging to `main` triggers the deploy. Lint locally first (`promtool`/`amtool`, see the repo-root CLAUDE.md) — the pipeline no longer does it for you.
+- Touching a Prometheus rule, Grafana dashboard, Tempo config, etc. only requires a redeploy - push to a branch, open a PR; merging to `main` triggers the deploy. Lint locally first (`promtool`/`amtool`, see the repo-root CLAUDE.md) - the pipeline no longer does it for you.
 - Adding a new monitored service: run `/add-monitored-service`. It adds the scrape target, scaffolds starter alert rules, and reminds you the service must join `monitoring_monitoring`.
 - Auditing for drift: run `/sync-monitoring-config`.
 - Changing the network name or removing `-p monitoring`: breaks the bot's `monitoring_monitoring` external attachment. Don't.

@@ -295,8 +295,8 @@
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "expr": "pg_stat_user_tables_n_dead_tup{datname=\"discordbot\"}", "legendFormat": "dead — {{relname}}" },
-        { "refId": "B", "expr": "pg_stat_user_tables_n_live_tup{datname=\"discordbot\"}", "legendFormat": "live — {{relname}}" }
+        { "refId": "A", "expr": "pg_stat_user_tables_n_dead_tup{datname=\"discordbot\"}", "legendFormat": "dead - {{relname}}" },
+        { "refId": "B", "expr": "pg_stat_user_tables_n_live_tup{datname=\"discordbot\"}", "legendFormat": "live - {{relname}}" }
       ],
       "fieldConfig": {
         "defaults": {

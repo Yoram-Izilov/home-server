@@ -1,4 +1,4 @@
-// Grafana Alloy — eBPF continuous profiling for the portfolio nginx container.
+// Grafana Alloy - eBPF continuous profiling for the portfolio nginx container.
 //
 // The portfolio is static nginx (C), so there is no Pyroscope SDK to embed the way the
 // Python bot does. Instead Alloy samples the process from the kernel via eBPF and pushes
