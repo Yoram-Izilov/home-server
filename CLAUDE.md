@@ -54,7 +54,7 @@ Config linting is **not** part of the pipeline — validate locally before pushi
 
 ## Stack
 
-Nine services, all defined in `monitoring/docker-compose.yml` on the `monitoring` network. Detailed guidance lives in `monitoring/CLAUDE.md`.
+Eleven services, all defined in `monitoring/docker-compose.yml` on the `monitoring` network. Detailed guidance lives in `monitoring/CLAUDE.md`.
 
 | Service | Image | Port | Purpose |
 |---|---|---|---|
@@ -67,6 +67,8 @@ Nine services, all defined in `monitoring/docker-compose.yml` on the `monitoring
 | `otel-collector` | `otel/opentelemetry-collector-contrib:0.111.0` | 4317/4318 | OTel gateway → Tempo. |
 | `alertmanager` | `prom/alertmanager:v0.28.1` | 9093 | Routes alerts → Discord webhook. |
 | `pyroscope` | `grafana/pyroscope:1.10.0` | 4040 | Continuous profiling. |
+| `blackbox-exporter` | `prom/blackbox-exporter:v0.27.0` | - | Black-box HTTP/TLS uptime probe of the public site. |
+| `alloy` | `grafana/alloy:v1.10.0` | - | eBPF profiler for the portfolio nginx (`privileged` + `pid: host`). |
 
 `postgres-exporter` is **not** here — it lives in `discord-py`'s root compose (it's the bot's database) and joins `monitoring_monitoring`, where this Prometheus scrapes it at `postgres-exporter:9187`.
 
